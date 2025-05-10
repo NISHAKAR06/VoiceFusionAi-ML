@@ -21,10 +21,10 @@ Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone https://github.com/NISHAKAR06/cinema-tamil-dub.git
+git clone https://github.com/NISHAKAR06/VoiceFusionAi-ML.git
 
 # Step 2: Navigate to the project directory.
-cd <VoicefusionAI>
+cd VoiceFusionAi-ML
 
 # Step 3: Install the necessary dependencies.
 npm i
