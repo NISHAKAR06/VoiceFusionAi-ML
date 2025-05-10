@@ -61,7 +61,7 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
     // Handle authentication (this would connect to your backend)
     toast({
       title: type === 'signin' ? "Signed In!" : "Account Created!",
-      description: "Welcome to Tamil Dub Cinema",
+      description: "Welcome to Voice Fusion AI",
     });
     
     // Forward to dashboard
