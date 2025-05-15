@@ -1,0 +1,9 @@
+flask==3.0.3
+TTS==0.14.3
+transformers==4.46.3
+pydub==0.25.1
+openai-whisper==20230918
+torch==2.2.2
+torchaudio==2.2.2
+torchvision==0.17.2
+pandas==2.0.3
