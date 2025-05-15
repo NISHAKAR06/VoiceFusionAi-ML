@@ -74,11 +74,11 @@ export function ProfileCard({ className }: ProfileProps) {
         <div className="flex flex-col items-center space-y-2">
           <Avatar className="w-20 h-20 border-4 border-tamil-light dark:border-tamil-primary">
             <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>AS</AvatarFallback>
+            <AvatarFallback>N</AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="text-xl font-semibold">Alexis Sanchez</h3>
-            <p className="text-sm text-muted-foreground">123K followers</p>
+            <h3 className="text-xl font-semibold">Nishakar T</h3>
+            {/* <p className="text-sm text-muted-foreground">123K followers</p> */}
           </div>
         </div>
       </CardHeader>
