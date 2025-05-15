@@ -22,4 +22,30 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python virtual environment
+backend/env/
+venv/
+ENV/
+env/
+*.pyc
+__pycache__/
+
+# Python distribution/packaging
+dist/
+build/
+*.egg-info/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
 .env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
