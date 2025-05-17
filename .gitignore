@@ -49,3 +49,7 @@ build/
 .env.development
 .env.test
 .env.production
+
+# additional files
+/backend/db.sqlite3
+/backend/media/
