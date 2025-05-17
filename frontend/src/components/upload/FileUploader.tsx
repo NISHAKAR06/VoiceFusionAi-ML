@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -20,6 +20,13 @@ export function FileUploader() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  useEffect(() => {
+    const saved = localStorage.getItem('uploadedFiles');
+    if (saved) {
+      setFiles(JSON.parse(saved));
+    }
+  }, []);
   
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -87,6 +94,18 @@ export function FileUploader() {
                     : f
                 )
               );
+
+              // After setting files with processedUrl
+              const updatedFiles = prevFiles.map((f) =>
+                f.id === newFile.id
+                  ? { ...f, progress: 100, status: 'completed', processedUrl: url }
+                  : f
+              );
+              // Save only completed files with processedUrl
+              localStorage.setItem('uploadedFiles', JSON.stringify(
+                updatedFiles.filter(f => f.status === 'completed' && f.processedUrl)
+              ));
+              return updatedFiles;
             }).catch((error) => {
               toast({
                 title: "Upload failed",
@@ -139,7 +158,16 @@ export function FileUploader() {
   };
   
   const removeFile = (id: string) => {
-    setFiles((prevFiles) => prevFiles.filter((file) => file.id !== id));
+    setFiles((prevFiles) => {
+      const updated = prevFiles.filter((file) => file.id !== id);
+      localStorage.setItem(
+        "uploadedFiles",
+        JSON.stringify(
+          updated.filter((f) => f.status === "completed" && f.processedUrl)
+        )
+      );
+      return updated;
+    });
     toast({
       title: "File removed",
     });
@@ -201,6 +229,7 @@ export function FileUploader() {
             className="hidden"
             onChange={handleChange}
             accept=".mp4,.mkv,.avi,.mov,.qt"
+            title="Upload video file"
           />
           <Cloud className="w-12 h-12 text-tamil-primary mb-4" />
           <p className="text-lg font-medium mb-2">Drag & Drop your files here</p>
@@ -259,7 +288,6 @@ export function FileUploader() {
             </div>
           </div>
         )}
-        
         {/* {files.length > 0 && files.map((file) => file.processedUrl && (
           <div key={file.id} className="mt-4">
             <video src={file.processedUrl} controls />
@@ -278,8 +306,9 @@ export function FileUploader() {
                     : `http://localhost:8000${file.processedUrl}`
                 }
                 controls
-                width={400}
+                width={600}
               />
+              
               <center><div className="text-xs mt-1">{file.name}</div></center>
             </div>
             </center>
