@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ interface UploadedFile {
   type: string;
   progress: number;
   status: 'uploading' | 'completed' | 'error';
+  processedUrl?: string;
 }
 
 export function FileUploader() {
@@ -32,7 +32,7 @@ export function FileUploader() {
     }
   };
   
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     // Check if it's a valid video file
     const validTypes = ['video/mp4', 'video/x-matroska', 'video/avi', 'video/quicktime'];
     if (!validTypes.includes(file.type)) {
@@ -64,37 +64,61 @@ export function FileUploader() {
     };
     
     setFiles((prevFiles) => [...prevFiles, newFile]);
-    
-    // Simulate file upload with progress
-    const interval = setInterval(() => {
-      setFiles((prevFiles) => 
-        prevFiles.map((f) => {
-          if (f.id === newFile.id) {
-            const newProgress = f.progress + 10;
-            
-            if (newProgress >= 100) {
-              clearInterval(interval);
+
+  const interval = setInterval(() => {
+    setFiles((prevFiles) =>
+      prevFiles.map((f) => {
+        if (f.id === newFile.id) {
+          const newProgress = f.progress + 10;
+
+          if (newProgress >= 100) {
+            clearInterval(interval);
+            toast({
+              title: "File uploaded successfully",
+              description: `${file.name} is ready for processing.`,
+            });
+
+            // ✅ Upload to backend after "simulated" upload finishes
+            uploadVideo(file).then((url) => {
+              setFiles((prevFiles) =>
+                prevFiles.map((f) =>
+                  f.id === newFile.id
+                    ? { ...f, progress: 100, status: 'completed', processedUrl: url }
+                    : f
+                )
+              );
+            }).catch((error) => {
               toast({
-                title: "File uploaded successfully",
-                description: `${file.name} is ready for processing.`,
+                title: "Upload failed",
+                description: "Could not upload the file to the backend.",
+                variant: "destructive",
               });
-              return {
-                ...f,
-                progress: 100,
-                status: 'completed',
-              };
-            }
-            
+              setFiles((prevFiles) =>
+                prevFiles.map((f) =>
+                  f.id === newFile.id
+                    ? { ...f, progress: 100, status: 'error' }
+                    : f
+                )
+              );
+            });
+
             return {
               ...f,
-              progress: newProgress,
+              progress: 100,
+              status: 'completed',
             };
           }
-          return f;
-        })
-      );
-    }, 500);
-  };
+
+          return {
+            ...f,
+            progress: newProgress,
+          };
+        }
+        return f;
+      })
+    );
+  }, 500);
+};
   
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -138,6 +162,21 @@ export function FileUploader() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  // Upload function
+  async function uploadVideo(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('http://localhost:8000/upload/', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+    // data.processedUrl contains the URL to the processed video
+    return data.processedUrl;
+  }
 
   return (
     <Card className="w-full max-w-lg animate-fade-in">
@@ -220,6 +259,31 @@ export function FileUploader() {
             </div>
           </div>
         )}
+        
+        {/* {files.length > 0 && files.map((file) => file.processedUrl && (
+          <div key={file.id} className="mt-4">
+            <video src={file.processedUrl} controls />
+          </div>
+        ))} */}
+
+        {files
+          .filter((file) => file.status === 'completed' && file.processedUrl)
+          .map((file) => (
+            <center>
+            <div key={file.id} className="mt-4">
+              <video
+                src={
+                  file.processedUrl.startsWith('http')
+                    ? file.processedUrl
+                    : `http://localhost:8000${file.processedUrl}`
+                }
+                controls
+                width={400}
+              />
+              <center><div className="text-xs mt-1">{file.name}</div></center>
+            </div>
+            </center>
+          ))}
       </CardContent>
     </Card>
   );
