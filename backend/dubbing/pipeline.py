@@ -4,30 +4,52 @@ from .voice_utils import synthesize_tamil_audio
 from .lipsync_utils import run_wav2lip
 import os
 
-def dubbing_pipeline(video_path):
-    base_dir = os.path.dirname(video_path)
-    audio_path = os.path.join(base_dir, "extracted_audio.wav")
-    tamil_audio_path = os.path.join(base_dir, "tamil_audio.wav")
-    temp_video_path = os.path.join(base_dir, "temp_video.mp4")
-    final_video_path = os.path.join(base_dir, "final_dubbed.mp4")
 
-    # 1. Extract audio
-    extract_audio_ffmpeg(video_path, audio_path)
+def dubbing_pipeline(video_path, job_id=None):
+    from .models import DubbingJob
 
-    # 2. Transcribe to English
-    english_text = transcribe_audio_with_whisper(audio_path)
+    job = DubbingJob.objects.get(id=job_id)
+    base, _ = os.path.splitext(video_path)
+    audio_path = base + "_audio.wav"
+    tamil_audio_path = base + "_tamil.wav"
+    temp_video_path = base + "_temp.mp4"
 
-    # 3. Translate English to Tamil
-    tamil_text = translate_text_to_tamil(english_text)
+    try:
+        job.status = 'processing'
+        job.progress = 10
+        job.save()
 
-    # 4. Synthesize Tamil audio (voice cloning)
-    synthesize_tamil_audio(tamil_text, tamil_audio_path, reference_audio=audio_path)
+        extract_audio_ffmpeg(video_path, audio_path)
+        job.progress = 30
+        job.save()
 
-    # 5. Replace audio in video
-    replace_audio_in_video(video_path, tamil_audio_path, temp_video_path)
+        english_text = transcribe_audio_with_whisper(audio_path)
+        job.progress = 50
+        job.save()
 
-    # 6. Lip sync
-    run_wav2lip(temp_video_path, tamil_audio_path, final_video_path)
+        tamil_text = translate_text_to_tamil(english_text)
+        job.progress = 60
+        job.save()
 
-    # Optionally: Save final_video_path to DB or notify frontend
-    return final_video_path
+        synthesize_tamil_audio(tamil_text, tamil_audio_path, reference_audio=audio_path)
+        job.progress = 80
+        job.save()
+
+        # 5. (Optional) Lip sync
+        run_wav2lip(video_path, tamil_audio_path, temp_video_path)
+        job.progress = 90
+        job.save()
+
+        # 6. Replace audio in video
+        output_video_path = base + "_dubbed.mp4"
+        replace_audio_in_video(temp_video_path, tamil_audio_path, output_video_path)
+        job.progress = 100
+        job.status = 'completed'
+        job.output_file = output_video_path  # if you have this field
+        job.save()
+
+    except Exception as e:
+        job.status = 'failed'
+        job.save()
+        raise
+    return output_video_path
