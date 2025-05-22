@@ -1,57 +1,53 @@
 from django.http import JsonResponse
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import DubbingJob
 from .tasks import process_dubbing_task
-import os
+import logging
 
-
-# @api_view(['POST'])
-# def upload_video(request):
-#     try:
-#         if 'file' not in request.FILES:
-#             return JsonResponse({'error': 'No file uploaded'}, status=400)
-            
-#         uploaded_file = request.FILES['file']
-        
-#         # Create media directory if it doesn't exist
-#         media_path = os.path.join('media', 'uploads')
-#         os.makedirs(media_path, exist_ok=True)
-        
-#         # Save the file
-#         file_path = os.path.join(media_path, uploaded_file.name)
-#         with open(file_path, 'wb+') as destination:
-#             for chunk in uploaded_file.chunks():
-#                 destination.write(chunk)
-                
-#         # Return response with file details
-#         return JsonResponse({
-#             'job_id': str(hash(file_path))[:8],  # Generate simple job ID
-#             'processedUrl': f'/media/uploads/{uploaded_file.name}',
-#             'message': 'File uploaded successfully'
-#         })
-        
-#     except Exception as e:
-#         return JsonResponse({
-#             'error': str(e)
-#         }, status=500)
+logger = logging.getLogger(__name__)
 
 class VideoUploadView(APIView):
     def post(self, request):
-        file = request.FILES.get('file')
-        if not file:
-            return Response({'error': 'No file provided'}, status=400)
+        try:
+            if 'file' not in request.FILES:
+                return Response(
+                    {'error': 'No file uploaded'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            file = request.FILES['file']
             
-        job = DubbingJob.objects.create(video_file=file)
-        file_path = job.video_file.path
-        process_dubbing_task.delay(file_path, job.id)
-        
-        return Response({
-            'message': 'File uploaded. Processing started.',
-            'job_id': job.id,
-            'status': job.status,
-            'progress': job.progress
-        }, status=200)
+            # Validate file format
+            allowed_formats = ['.mp4', '.avi', '.mov', '.mkv']
+            if not any(file.name.lower().endswith(fmt) for fmt in allowed_formats):
+                return Response(
+                    {'error': 'Invalid file format. Supported formats: MP4, AVI, MOV, MKV'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Create dubbing job
+            job = DubbingJob.objects.create(
+                video_file=file,
+                status='pending'
+            )
+
+            # Start processing
+            process_dubbing_task.delay(str(job.video_file.path), job.id)
+
+            return Response({
+                'job_id': job.id,
+                'status': 'pending',
+                'message': 'Video uploaded successfully'
+            }, status=status.HTTP_202_ACCEPTED)
+
+        except Exception as e:
+            logger.error(f"Error in video upload: {str(e)}")
+            return Response(
+                {'error': 'Internal server error during upload'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class JobStatusView(APIView):
     def get(self, request, job_id):
@@ -60,8 +56,17 @@ class JobStatusView(APIView):
             return Response({
                 'status': job.status,
                 'progress': job.progress,
-                'result_url': job.result_file.url if job.result_file else None,
-                'error': job.error_message
+                'error': job.error_message if job.status == 'failed' else None,
+                'result_url': job.result_file.url if job.status == 'completed' else None
             })
         except DubbingJob.DoesNotExist:
-            return Response({'error': 'Job not found'}, status=404)
+            return Response(
+                {'error': 'Job not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error fetching job status: {str(e)}")
+            return Response(
+                {'error': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

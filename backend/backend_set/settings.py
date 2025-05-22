@@ -5,9 +5,6 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -36,9 +33,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'dubbing',
     'rest_framework',
-
+    'dubbing.apps.DubbingConfig',
 ]
 
 MIDDLEWARE = [
@@ -133,5 +129,53 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# celery broker url(optional)
+# Celery Settings
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+# Media settings
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Directory structure for dubbing pipeline
+UPLOAD_DIR = os.path.join(MEDIA_ROOT, 'videos')
+AUDIO_DIR = os.path.join(MEDIA_ROOT, 'audio')
+RESULTS_DIR = os.path.join(MEDIA_ROOT, 'results')
+TEMP_DIR = os.path.join(MEDIA_ROOT, 'temp')
+
+# Ensure directories exist
+for directory in [UPLOAD_DIR, AUDIO_DIR, RESULTS_DIR, TEMP_DIR]:
+    os.makedirs(directory, exist_ok=True)
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
+    },
+}
+
+# Whisper model settings
+import torch
+WHISPER_CONFIG = {
+    'MODEL_SIZE': 'base',  # Options: tiny, base, small, medium, large
+    'DEVICE': 'cuda' if torch.cuda.is_available() else 'cpu',
+    'FP16': False,  # Keep False for CPU
+    'BATCH_SIZE': 16,
+    'BEAM_SIZE': 5
+}
