@@ -43,13 +43,21 @@ def dubbing_pipeline(video_path, job_id=None):
         # 6. Replace audio in video
         output_video_path = base + "_dubbed.mp4"
         replace_audio_in_video(temp_video_path, tamil_audio_path, output_video_path)
-        job.progress = 100
+        
+        # Update job with result file
+        from django.core.files import File
+        job.result_file.save(
+            os.path.basename(output_video_path),
+            File(open(output_video_path, 'rb'))
+        )
+        
         job.status = 'completed'
-        job.output_file = output_video_path  # if you have this field
+        job.progress = 100
         job.save()
 
     except Exception as e:
         job.status = 'failed'
+        job.error_message = str(e)
         job.save()
         raise
     return output_video_path

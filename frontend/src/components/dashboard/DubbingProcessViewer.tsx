@@ -1,14 +1,19 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, FastForward, Pause, Play, SkipForward, Volume2, Film, Mic, Languages, MoveHorizontal } from 'lucide-react';
+import { ChevronDown, FastForward, Pause, Play, Volume2, Film, Mic, Languages, MoveHorizontal } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { Slider } from '@/components/ui/slider';
+import { Project } from './Dashboard';
+
+interface DubbingProcessViewerProps {
+  project: Project | null;
+}
 
 const steps = [
   { 
@@ -53,13 +58,22 @@ const steps = [
   }
 ];
 
-export function DubbingProcessViewer() {
+export function DubbingProcessViewer({ project }: DubbingProcessViewerProps) {
   const [activeStep, setActiveStep] = useState('voice-synthesis');
   const [isPlaying, setIsPlaying] = useState(false);
   const [processingSpeed, setProcessingSpeed] = useState(1);
   
   const activeStepIndex = steps.findIndex(step => step.id === activeStep);
-  const overallProgress = steps.reduce((acc, step) => acc + step.progress, 0) / steps.length;
+  const overallProgress = project?.progress || 0;
+  
+  // Start/pause processing based on project changes
+  useEffect(() => {
+    if (project && project.status === 'processing' && !isPlaying) {
+      setIsPlaying(true);
+    } else if (project && project.status === 'completed' && isPlaying) {
+      setIsPlaying(false);
+    }
+  }, [project, isPlaying]);
   
   const handleSpeedChange = (speed: number) => {
     setProcessingSpeed(speed);
@@ -83,11 +97,21 @@ export function DubbingProcessViewer() {
     });
   };
 
+  if (!project) {
+    return (
+      <div className="text-center py-12">
+        <Film className="h-16 w-16 mx-auto text-muted-foreground opacity-30" />
+        <p className="mt-4 text-lg font-medium">No Project Processing</p>
+        <p className="text-muted-foreground">Upload a file to start dubbing</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h3 className="text-xl font-semibold">The Dark Knight</h3>
+          <h3 className="text-xl font-semibold">{project.title}</h3>
           <p className="text-muted-foreground">Tamil Dubbing in Progress</p>
         </div>
         

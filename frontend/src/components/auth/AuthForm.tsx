@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { FaGoogle, FaFacebook, FaGithub, FaLinkedin } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/context/UserContext';
 
 interface AuthFormProps {
   type: 'signin' | 'signup';
@@ -14,6 +15,7 @@ interface AuthFormProps {
 
 export function AuthForm({ type, onSubmit }: AuthFormProps) {
   const navigate = useNavigate();
+  const { setUser } = useUser();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -58,16 +60,26 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
       return;
     }
     
-    // Handle authentication (this would connect to your backend)
+    // Create the user object
+    const userData = {
+      name: type === 'signin' ? formData.email.split('@')[0] : formData.name,
+      email: formData.email,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        type === 'signin' ? formData.email.split('@')[0] : formData.name
+      )}&background=6246EA&color=fff`
+    };
+    
+    // Set user in context
+    setUser(userData);
+    
+    // Handle authentication success
     toast({
       title: type === 'signin' ? "Signed In!" : "Account Created!",
-      description: "Welcome to Voice Fusion AI",
+      description: "Welcome to Tamil Dub Cinema",
     });
     
     // Forward to dashboard
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1000);
+    navigate('/dashboard');
     
     // Call onSubmit if provided
     if (onSubmit) {

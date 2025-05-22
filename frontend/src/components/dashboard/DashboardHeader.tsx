@@ -1,12 +1,17 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Settings, LogOut, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '@/context/UserContext';
 
 export function DashboardHeader() {
   const navigate = useNavigate();
+  const { user, logout } = useUser();
+  
+  const handleLogout = () => {
+    logout();
+  };
   
   return (
     <header className="flex justify-between items-center animate-fade-in">
@@ -23,8 +28,8 @@ export function DashboardHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                <AvatarFallback>AS</AvatarFallback>
+                <AvatarImage src={user?.avatar || ""} alt={user?.name || "User"} />
+                <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -34,7 +39,7 @@ export function DashboardHeader() {
             <DropdownMenuItem onClick={() => navigate('/profile')}>Profile</DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate('/settings')}>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/signin')}>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
