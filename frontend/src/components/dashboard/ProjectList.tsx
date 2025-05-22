@@ -7,74 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Download, PlayCircle, Film, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
+import { Project } from './Dashboard';
 
-const projects = [
-  { 
-    id: 1, 
-    title: "Avengers Endgame", 
-    date: "2023-05-01", 
-    status: "completed", 
-    progress: 100,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "3h 2m"
-  },
-  { 
-    id: 2, 
-    title: "The Dark Knight", 
-    date: "2023-05-05", 
-    status: "processing", 
-    progress: 72,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "2h 32m"
-  },
-  { 
-    id: 3, 
-    title: "Inception", 
-    date: "2023-05-10", 
-    status: "completed", 
-    progress: 100,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "2h 28m"
-  },
-  { 
-    id: 4, 
-    title: "Interstellar", 
-    date: "2023-05-15", 
-    status: "processing", 
-    progress: 45,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "2h 49m"
-  },
-  { 
-    id: 5, 
-    title: "The Matrix", 
-    date: "2023-04-20", 
-    status: "completed", 
-    progress: 100,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "2h 16m"
-  },
-  { 
-    id: 6, 
-    title: "Pulp Fiction", 
-    date: "2023-04-15", 
-    status: "completed", 
-    progress: 100,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "2h 34m"
-  },
-  { 
-    id: 7, 
-    title: "The Godfather", 
-    date: "2023-04-10", 
-    status: "failed", 
-    progress: 32,
-    thumbnail: "https://via.placeholder.com/120x68",
-    duration: "2h 55m"
-  },
-];
+interface ProjectListProps {
+  projects: Project[];
+}
 
-export function ProjectList() {
+export function ProjectList({ projects = [] }: ProjectListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
   
@@ -93,7 +32,7 @@ export function ProjectList() {
     return true;
   });
   
-  const handleDownload = (id: number) => {
+  const handleDownload = (id: string) => {
     const project = projects.find(p => p.id === id);
     
     if (project?.status === "completed") {
@@ -110,7 +49,7 @@ export function ProjectList() {
     }
   };
   
-  const handlePlay = (id: number) => {
+  const handlePlay = (id: string) => {
     const project = projects.find(p => p.id === id);
     
     if (project?.status === "completed") {
@@ -182,11 +121,9 @@ export function ProjectList() {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <div className="rounded-md overflow-hidden bg-muted w-full md:w-[120px] h-[68px] flex-shrink-0">
-                  <img 
-                    src={project.thumbnail} 
-                    alt={project.title} 
-                    className="w-full h-full object-cover"
-                  />
+                  <div className="w-full h-full bg-muted flex items-center justify-center">
+                    <Film className="h-8 w-8 text-muted-foreground" />
+                  </div>
                 </div>
                 
                 <div className="flex-grow">
@@ -204,7 +141,7 @@ export function ProjectList() {
                       </Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Added on {project.date} • {project.duration}
+                      Added on {project.date} • {project.duration || 'Unknown duration'}
                     </div>
                   </div>
                   
