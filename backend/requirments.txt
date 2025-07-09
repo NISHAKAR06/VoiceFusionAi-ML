@@ -16,4 +16,9 @@ opencv-python>=4.7,<5.0
 moviepy>=1.0.3,<2.0
 google-cloud-speech>=2.21.0,<3.0
 requests>=2.31,<3.0
+
+
 psutil
+fastapi[all]
+httpx==0.13.3
+librosa==0.8.1

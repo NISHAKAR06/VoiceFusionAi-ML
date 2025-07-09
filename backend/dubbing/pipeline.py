@@ -1,14 +1,18 @@
 import os
-import shutil
+import logging
+import time
+from pathlib import Path
 from django.apps import apps
-from .audio_utils import extract_audio_ffmpeg, transcribe_audio_with_whisper, replace_audio_in_video
-from .translation_utils import translate_text_to_tamil
-from .voice_utils import synthesize_tamil_audio
+from .audio_utils import extract_audio_ffmpeg, transcribe_audio_with_whisper, inspect_audio_properties
+from .translation_utils import translate_text_to_hindi
+from .voice_utils import synthesize_hindi_audio
 from .lipsync_utils import run_wav2lip
 from .checks import run_all_checks
-import logging
+import traceback
 
 logger = logging.getLogger(__name__)
+
+MEDIA_ROOT = Path(__file__).parent.parent / "media"
 
 def cleanup_temp_files(*files):
     """Clean up temporary files after processing"""
@@ -20,104 +24,98 @@ def cleanup_temp_files(*files):
         except Exception as e:
             logger.warning(f"Failed to clean up file {file}: {str(e)}")
 
+def ensure_dir(path):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+
 def dubbing_pipeline(video_path, job_id):
-    """Main dubbing pipeline that processes the video"""
     DubbingJob = apps.get_model('dubbing', 'DubbingJob')
     job = DubbingJob.objects.get(id=job_id)
-    temp_files = []
-    
+    base_name = Path(video_path).stem
+
+    # Define all output paths in their respective folders
+    extracted_audio_path = MEDIA_ROOT / "audio" / f"{base_name}_extracted.wav"
+    hindi_audio_path = MEDIA_ROOT / "audio" / f"{base_name}_hindi.wav"
+    final_output_path = MEDIA_ROOT / "results" / f"{base_name}_dubbed.mp4"
+
+    # Ensure directories exist
+    for p in [extracted_audio_path, hindi_audio_path, final_output_path]:
+        ensure_dir(p)
+
+    temp_files = [extracted_audio_path, hindi_audio_path]
+
     try:
-        # Run all critical checks before processing
+        logger.info("=== Starting full folder and resource check ===")
+        # Run all critical checks (system, video, audio)
         run_all_checks(video_path)
-        
-        # Update job status to processing
-        job.status = 'processing'
-        job.progress = 0
-        job.save()
-        
-        # Generate output paths
-        base_dir = os.path.dirname(video_path)
-        filename = os.path.basename(video_path)
-        base_name = os.path.splitext(filename)[0]
-        
-        # Define all output paths
-        extracted_audio_path = os.path.join(base_dir, f"{base_name}_extracted_audio.wav")
-        translated_audio_path = os.path.join(base_dir, f"{base_name}_tamil_audio.wav")
-        final_output_path = os.path.join(base_dir, f"{base_name}_dubbed.mp4")
+        logger.info("All critical checks passed.")
 
-        # Add files to cleanup list
-        temp_files.extend([extracted_audio_path, translated_audio_path])
+        logger.info(f"Received video upload: {video_path}")
 
-        logger.info(f"Starting dubbing pipeline for job {job_id}")
-
-        # Step 1: Extract audio from video
+        # Step 1: Extract audio
         logger.info("Extracting audio from video...")
         extract_audio_ffmpeg(video_path, extracted_audio_path)
-        
-        # After extracting audio, check its quality
-        run_all_checks(video_path, extracted_audio_path)
-        
-        job.progress = 20
-        job.save()
+        logger.info(f"Audio extracted and saved to: {extracted_audio_path}")
 
-        # Step 2: Speech recognition with sub-progress
-        logger.info("Performing speech recognition...")
-        job.status = 'processing'
-        job.progress = 30
-        job.save()
-        
+        # Step 2: Inspect audio
+        props = inspect_audio_properties(extracted_audio_path)
+        logger.info(f"Audio properties: {props}")
+
+        # Step 3: Transcribe
+        logger.info("Transcribing audio...")
         english_text = transcribe_audio_with_whisper(extracted_audio_path)
-        
-        job.progress = 40
-        job.save()
+        logger.info("Transcription completed successfully")
 
-        # Step 3: Translation
-        logger.info("Translating text to Tamil...")
-        tamil_text = translate_text_to_tamil(english_text)
-        job.progress = 60
-        job.save()
+        # Step 4: Translate
+        logger.info("Translating text to Hindi...")
+        hindi_text = translate_text_to_hindi(english_text)
+        logger.info("="*40)
+        logger.info(f"Translated Hindi text:\n{hindi_text}")
+        logger.info("="*40)
+        print(f"\n=== Translated Hindi text ===\n{hindi_text}\n============================\n")
 
-        # Step 4: Voice synthesis
-        logger.info("Synthesizing Tamil voice...")
-        synthesize_tamil_audio(
-            text=tamil_text,
-            output_path=translated_audio_path,
+        # Step 5: Synthesize Hindi audio (voice cloning)
+        logger.info("Synthesizing Hindi voice...")
+        props = inspect_audio_properties(extracted_audio_path)
+        logger.info(f"Reference audio properties: {props}")
+        synthesize_hindi_audio(
+            text=hindi_text,
+            output_path=hindi_audio_path,
             reference_audio=extracted_audio_path
         )
-        job.progress = 80
-        job.save()
+        logger.info(f"Hindi audio synthesized and saved to {hindi_audio_path}")
 
-        # Step 5: Lip sync and final video processing
-        logger.info("Processing final video with lip sync...")
-        run_wav2lip(
-            video_path=video_path,
-            audio_path=translated_audio_path,
-            output_path=final_output_path
-        )
-        
-        # Verify final output exists
-        if not os.path.exists(final_output_path):
-            raise FileNotFoundError(f"Final output video not created: {final_output_path}")
-        
-        # Save the result file path
-        job.result_file = final_output_path
-        job.progress = 100
-        job.status = 'completed'
-        job.save()
+        # Step 6: Lip sync
+        logger.info("Running Wav2Lip for lip sync...")
+        run_wav2lip(video_path, hindi_audio_path, final_output_path)
+        logger.info(f"Dubbed video created and saved to {final_output_path}")
 
-        logger.info(f"Dubbing pipeline completed for job {job_id}")
-
-        # Cleanup temporary files
+        # Step 7: Cleanup
         cleanup_temp_files(*temp_files)
+        logger.info("Temporary files cleaned up.")
 
-        return final_output_path
-        
+        # Update job status
+        job.result_file = str(final_output_path)
+        job.status = 'completed'
+        job.progress = 100
+        job.save()
+        logger.info("=== Dubbing pipeline completed successfully ===")
+
+        # Return status for frontend
+        return {
+            "status": "success",
+            "result_file": str(final_output_path),
+            "message": "Dubbing completed successfully."
+        }
+
     except Exception as e:
         logger.error(f"Error in dubbing pipeline for job {job_id}: {str(e)}")
-        # Update job status
+        logger.error(traceback.format_exc())
+        cleanup_temp_files(*temp_files)
         job.status = 'failed'
         job.error_message = str(e)
         job.save()
-        # Attempt cleanup even on failure
-        cleanup_temp_files(*temp_files)
-        raise
+        return {
+            "status": "failed",
+            "error": str(e),
+            "message": "Dubbing failed. Check logs for details."
+        }

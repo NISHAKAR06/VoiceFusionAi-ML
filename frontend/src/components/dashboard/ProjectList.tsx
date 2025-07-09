@@ -68,6 +68,14 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
     }
   };
 
+  const handleRetry = (id: string) => {
+    toast({
+      title: "Retrying process",
+      description: "Starting the dubbing process again",
+    });
+    // Add your retry logic here
+  };
+
   return (
     <Card className="animate-fade-in">
       <CardHeader>
@@ -92,6 +100,7 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
             >
               All
             </Button>
+
             <Button
               variant={filter === "processing" ? "default" : "outline"}
               onClick={() => setFilter("processing")}
@@ -99,6 +108,15 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
             >
               Processing
             </Button>
+
+            <Button
+              variant={filter === "failed" ? "default" : "outline"}
+              onClick={() => setFilter("failed")}
+              size="sm"
+            >
+              Failed
+            </Button>
+
             <Button
               variant={filter === "completed" ? "default" : "outline"}
               onClick={() => setFilter("completed")}
@@ -119,7 +137,9 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
             filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="flex flex-col md:flex-row gap-4 p-4 border rounded-lg animate-fade-in"
+                className={`flex flex-col md:flex-row gap-4 p-4 border rounded-lg animate-fade-in ${
+                  project.status === "failed" ? "border-red-200 bg-red-50" : ""
+                }`}
               >
                 <div className="rounded-md overflow-hidden bg-muted w-full md:w-[120px] h-[68px] flex-shrink-0">
                   <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -130,37 +150,54 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
                 <div className="flex-grow">
                   <div className="flex flex-col md:flex-row justify-between gap-2 items-start md:items-center mb-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{project.title}</h3>
+                      <h4 className="font-medium">{project.title}</h4>
                       <Badge
                         variant={
                           project.status === "completed"
                             ? "default"
-                            : project.status === "processing"
-                            ? "outline"
-                            : "destructive"
+                            : project.status === "failed"
+                            ? "destructive"
+                            : "outline"
                         }
-                        className="capitalize"
                       >
-                        {project.status}
+                        {project.status === "failed"
+                          ? "Failed"
+                          : project.status}
                       </Badge>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Added on {project.date} •{" "}
-                      {project.duration || "Unknown duration"}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <Progress
                       value={project.progress}
-                      className="h-2 flex-grow"
+                      className={`h-2 flex-grow ${
+                        project.status === "failed" ? "bg-red-200" : ""
+                      }`}
                     />
                     <span className="text-xs text-muted-foreground w-12">
-                      {project.progress}%
+                      {project.status === "failed"
+                        ? "Failed"
+                        : `${Math.round(project.progress)}%`}
                     </span>
                   </div>
 
+                  {project.status === "failed" && (
+                    <p className="text-sm text-red-500 mt-2">
+                      Processing failed. Please try again.
+                    </p>
+                  )}
+
                   <div className="flex gap-2 mt-3">
+                    {project.status === "failed" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-500 border-red-200 hover:bg-red-50"
+                        onClick={() => handleRetry(project.id)}
+                      >
+                        Retry
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -170,6 +207,7 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
                       <PlayCircle className="h-4 w-4" />
                       Play
                     </Button>
+
                     <Button
                       variant="outline"
                       size="sm"

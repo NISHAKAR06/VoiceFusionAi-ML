@@ -54,3 +54,26 @@ build/
 # additional files
 /backend/db.sqlite3
 /backend/media/
+/backend/dubbing/test_script.py
+# /backend/dubbing/check_tts.py
+/backend/dubbing/models/base.py/
+backend/dubbing/models/
+
+
+# wav2lip
+*.pkl
+*.jpg
+*.mp4
+*.pth
+*.pyc
+__pycache__
+*.h5
+*.avi
+*.wav
+filelists/*.txt
+evaluation/test_filelists/lr*.txt
+*.pyc
+*.mkv
+*.gif
+*.webm
+*.mp3

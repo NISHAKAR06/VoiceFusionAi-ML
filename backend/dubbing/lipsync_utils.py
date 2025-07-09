@@ -47,7 +47,7 @@ def run_wav2lip(video_path, audio_path, output_path):
         # Get Wav2Lip path from environment variable or use default
         wav2lip_path = os.getenv('WAV2LIP_PATH')
         if not wav2lip_path:
-            raise ValueError("WAV2LIP_PATH environment variable is not set")
+            raise EnvironmentError("WAV2LIP_PATH environment variable is not set")
         
         checkpoint_path = os.path.join(wav2lip_path, 'checkpoints/wav2lip_gan.pth')
         if not os.path.exists(checkpoint_path):
@@ -58,7 +58,7 @@ def run_wav2lip(video_path, audio_path, output_path):
         logger.info(f"Output will be saved to: {output_path}")
         
         cmd = [
-            "python",
+            sys.executable,
             os.path.join(wav2lip_path, "inference.py"),
             "--checkpoint_path", checkpoint_path,
             "--face", video_path,
