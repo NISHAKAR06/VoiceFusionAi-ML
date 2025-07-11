@@ -20,7 +20,7 @@ def check_wav2lip_dependencies():
             raise EnvironmentError("WAV2LIP_PATH environment variable is not set")
 
         # Check model checkpoint
-        checkpoint_path = os.path.join(wav2lip_path, 'checkpoints/wav2lip_gan.pth')
+        checkpoint_path = os.path.join(wav2lip_path, r"C:\Users\NISHAKART\Documents\GitHub\VoiceFusionAi-ML\backend\Wav2Lip\checkpoints\wav2lip_gan.pth")
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Wav2Lip model checkpoint not found at: {checkpoint_path}")
 
@@ -49,7 +49,7 @@ def run_wav2lip(video_path, audio_path, output_path):
         if not wav2lip_path:
             raise EnvironmentError("WAV2LIP_PATH environment variable is not set")
         
-        checkpoint_path = os.path.join(wav2lip_path, 'checkpoints/wav2lip_gan.pth')
+        checkpoint_path = os.path.join(wav2lip_path, r"C:\Users\NISHAKART\Documents\GitHub\VoiceFusionAi-ML\backend\Wav2Lip\checkpoints\wav2lip_gan.pth")
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Wav2Lip checkpoint not found at: {checkpoint_path}")
         
