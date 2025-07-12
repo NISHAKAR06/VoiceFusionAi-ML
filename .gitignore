@@ -55,27 +55,25 @@ build/
 /backend/db.sqlite3
 /backend/media/
 /backend/dubbing/test_script.py
-# /backend/dubbing/check_tts.py
-
-backend/dubbing/models/
-backend/Wav2Lip
+/backend/wav2lip
+/backend/models/base.pt/
 
 
-# wav2lip
-*.pkl
-*.jpg
-*.mp4
-*.pth
-*.pyc
-__pycache__
-*.h5
-*.avi
-*.wav
-filelists/*.txt
-evaluation/test_filelists/lr*.txt
-*.pyc
-*.mkv
-*.gif
-*.webm
-*.mp3
+# wav2lip ignore patterns (commented out for reference; uncomment if needed for your workflow)
+# *.pkl
+# *.jpg
+# *.mp4
+# *.pth
+# *.pyc
+# __pycache__
+# *.h5
+# *.avi
+# *.wav
+# filelists/*.txt
+# evaluation/test_filelists/lr*.txt
+# *.pyc
+# *.mkv
+# *.gif
+# *.webm
+# *.mp3
 
