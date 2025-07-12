@@ -66,7 +66,7 @@ VoiceFusionAi-ML/
 |   ├──dubbing                   # Django App
 |   |   ├── lipsync_utils.py
 │   |   ├── models.py
-│   |   ├── hindi_to_hindi.py
+│   |   ├── english_to_hindi.py
 │   │   ├── apps.py
 │   |   ├── audio_utils.py
 │   |   ├── voice_utils.py
