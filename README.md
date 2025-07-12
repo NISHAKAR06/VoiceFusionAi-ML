@@ -25,6 +25,16 @@ By leveraging state-of-the-art AI models and tools, it automates transcription, 
 - 🌏 Accessibility: Making English content more accessible to Hindi audiences
 
 # 🧰 Tech Stack
+
+## Frontend
+     React — Component-based UI
+
+     Vite — Fast web build tool
+
+     TypeScript — Typed JavaScript
+
+     CSS/HTML — Styling & layout
+
 ## Backend
 
      Python — Core scripting language
@@ -42,15 +52,7 @@ By leveraging state-of-the-art AI models and tools, it automates transcription, 
      Wav2Lip — Realistic lip-sync
 
      CUDA (optional) — GPU acceleration
-
-## Frontend
-     React — Component-based UI
-
-     Vite — Fast web build tool
-
-     TypeScript — Typed JavaScript
-
-     CSS/HTML — Styling & layout
+     
 ## Folder Structure
 ```
 VoiceFusionAi-ML/
