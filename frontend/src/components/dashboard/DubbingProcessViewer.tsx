@@ -127,6 +127,19 @@ export function DubbingProcessViewer({ project }: DubbingProcessViewerProps) {
     }
   }, [project, isPlaying]);
 
+  useEffect(() => {
+    if (!project?.id) return;
+    const interval = setInterval(() => {
+      fetch(`http://localhost:8000/dubbing/job-status/${project.id}/`)
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Job status update:", data); // Add this line
+          setProject((prev) => ({ ...prev, ...data }));
+        });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [project?.id]);
+
   // useEffect(() => {
   //   if (!project?.id) return;
   //   const ws = new WebSocket(`ws://localhost:8000/ws/logs/${project.id}`);
@@ -179,6 +192,13 @@ export function DubbingProcessViewer({ project }: DubbingProcessViewerProps) {
       .then((data) => {
         console.log("Success:", data);
         // Handle success (e.g., update project state, show toast, etc.)
+        setProject({
+          ...initialProject,
+          id: data.job_id, // Use job_id from backend
+          status: data.status,
+          progress: 0,
+          stepStatus: {}, // Start empty, will be filled by polling
+        });
       })
       .catch((error) => {
         console.error("Error:", error);

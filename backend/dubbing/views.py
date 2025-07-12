@@ -76,25 +76,15 @@ class JobStatusView(APIView):
     def get(self, request, job_id):
         try:
             job = DubbingJob.objects.get(id=job_id)
-            
-            # Check if video file still exists
-            if job.status != 'completed' and not Path(job.video_file.path).exists():
-                job.status = 'failed'
-                job.error_message = 'Video file not found'
-                job.save()
-            
             return Response({
                 'status': job.status,
                 'progress': job.progress,
-                'error': job.error_message if job.status == 'failed' else None,
-                'result_url': job.result_file.url if job.status == 'completed' and job.result_file else None,
-                'video_path': str(job.video_file.path) if job.video_file else None  # For debugging
+                'stepStatus': job.step_status,  # Add this line
+                'result_url': job.result_file.url if job.result_file else None,
+                'error': job.error_message
             })
         except DubbingJob.DoesNotExist:
-            return Response(
-                {'error': 'Job not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({'error': 'Job not found'}, status=404)
         except Exception as e:
             logger.error(f"Error fetching job status: {str(e)}")
             return Response(

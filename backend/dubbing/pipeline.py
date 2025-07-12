@@ -27,6 +27,12 @@ def cleanup_temp_files(*files):
 def ensure_dir(path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
 
+def update_step(job, step_id, status, progress):
+    if job.step_status is None:
+        job.step_status = {}
+    job.step_status[step_id] = {"status": status, "progress": progress}
+    job.save(update_fields=["step_status"])
+
 def dubbing_pipeline(video_path, job_id):
     DubbingJob = apps.get_model('dubbing', 'DubbingJob')
     job = DubbingJob.objects.get(id=job_id)
@@ -43,6 +49,11 @@ def dubbing_pipeline(video_path, job_id):
 
     temp_files = [extracted_audio_path, hindi_audio_path]
 
+    # Set job status to processing at the start
+    job.status = 'processing'
+    job.progress = 0
+    job.save(update_fields=["status", "progress"])
+
     try:
         logger.info("=== Starting full folder and resource check ===")
         # Run all critical checks (system, video, audio)
@@ -53,21 +64,30 @@ def dubbing_pipeline(video_path, job_id):
 
         # Step 1: Extract audio
         logger.info("Extracting audio from video...")
+        update_step(job, "speech-recognition", "in-progress", 10)
         extract_audio_ffmpeg(video_path, extracted_audio_path)
+        update_step(job, "speech-recognition", "completed", 100)
         logger.info(f"Audio extracted and saved to: {extracted_audio_path}")
 
         # Step 2: Inspect audio
+        logger.info("Inspecting audio properties...")
+        update_step(job, "translation", "in-progress", 10)
         props = inspect_audio_properties(extracted_audio_path)
         logger.info(f"Audio properties: {props}")
+        update_step(job, "translation", "completed", 100)
 
         # Step 3: Transcribe
         logger.info("Transcribing audio...")
+        update_step(job, "voice-synthesis", "in-progress", 10)
         english_text = transcribe_audio_with_whisper(extracted_audio_path)
+        update_step(job, "voice-synthesis", "completed", 100)
         logger.info("Transcription completed successfully")
 
         # Step 4: Translate
         logger.info("Translating text to Hindi...")
+        update_step(job, "lip-sync", "in-progress", 10)
         hindi_text = translate_text_to_hindi(english_text)
+        update_step(job, "lip-sync", "completed", 100)
         logger.info("="*40)
         logger.info(f"Translated Hindi text:\n{hindi_text}")
         logger.info("="*40)
@@ -75,6 +95,7 @@ def dubbing_pipeline(video_path, job_id):
 
         # Step 5: Synthesize Hindi audio (voice cloning)
         logger.info("Synthesizing Hindi voice...")
+        update_step(job, "processing", "in-progress", 10)
         props = inspect_audio_properties(extracted_audio_path)
         logger.info(f"Reference audio properties: {props}")
         synthesize_hindi_audio(
@@ -82,6 +103,7 @@ def dubbing_pipeline(video_path, job_id):
             output_path=hindi_audio_path,
             reference_audio=extracted_audio_path
         )
+        update_step(job, "processing", "completed", 100)
         logger.info(f"Hindi audio synthesized and saved to {hindi_audio_path}")
 
         # Step 6: Lip sync
