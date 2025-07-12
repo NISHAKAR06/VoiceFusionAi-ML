@@ -56,7 +56,7 @@ build/
 /backend/media/
 /backend/dubbing/test_script.py
 /backend/Wav2Lip
-/backend/models/base.pt
+/backend/models/base.pt/
 
 
 # wav2lip ignore patterns (commented out for reference; uncomment if needed for your workflow)
