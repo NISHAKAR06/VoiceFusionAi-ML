@@ -51,45 +51,6 @@ By leveraging state-of-the-art AI models and tools, it automates transcription, 
      TypeScript — Typed JavaScript
 
      CSS/HTML — Styling & layout
-# Environment Variables
-
-To run this project, you will need to add the following environment variables to your .env file
-
-
-Conda — Virtual environment manager
-
-# 🖥️ Setup & Installation
-## Backend Setup
-1️⃣ Install Anaconda (if not already installed).
-
-2️⃣ Create and activate Conda environment:
-```
-conda create -n voicefusion python=3.9
-conda activate voicefusion
-```
-3️⃣ Install dependencies:
-```
-cd backend
-pip install -r requirements.txt
-```
-4️⃣ Run Django migrations and start server:
-```
-python manage.py migrate
-python manage.py runserver
-```
-## Frontend Setup
-
-1️⃣ Install Node.js (if not already installed).
-2️⃣ Install dependencies:
-```
-cd frontend
-npm install
-```
-3️⃣ Start server:
-```
-npm run dev
-```
-Frontend will be available at: http://localhost:5173
 ## Folder Structure
 ```
 VoiceFusionAi-ML/
@@ -138,9 +99,92 @@ VoiceFusionAi-ML/
 ├── README.md
 
 ```
+# Environment Variables
+
+To run this project, you will need to add the following environment variables to your .env file
+
+
+Conda — Virtual environment manager
+
+# 🖥️ Setup & Installation
+## Backend Setup
+1️⃣ Install Anaconda (if not already installed).
+
+2️⃣ Create and activate Conda environment:
+```
+conda create -n voicefusion python=3.9
+conda activate voicefusion
+```
+3️⃣ Install dependencies:
+```
+cd backend
+pip install -r requirements.txt
+```
+4️⃣ Run Django migrations and start server:
+```
+python manage.py migrate
+python manage.py runserver
+```
+## Frontend Setup
+
+1️⃣ Install Node.js (if not already installed).
+2️⃣ Install dependencies:
+```
+cd frontend
+npm install
+```
+3️⃣ Start server:
+```
+npm run dev
+```
+Frontend will be available at: http://localhost:5173
+## 🕒 Celery Setup
+Celery is used to offload heavy tasks (like Whisper, Wav2Lip) into background workers.
+
+Install Celery & Redis
+1️⃣ Activate the Conda environment:
+
+```
+conda activate voicefusion
+```
+2️⃣ Install Celery & Redis client:
+```
+pip install celery redis
+```
+3️⃣ Install & start Redis server:
+
+Linux/macOS:
+```
+sudo apt-get install redis-server
+redis-server
+```
+Windows:
+
+Download Redis: https://github.com/microsoftarchive/redis/releases
+Run redis-server.exe.
+```
+Start Celery Worker
+```
+Open a new terminal:
+
+cd backend
+
+🔗 Running Backend + Celery Together
+```
+Terminal 1:
+
+python manage.py runserver
+
+Terminal 2:
+
+python -m celery -A backend_set worker --loglevel=info
+```
+
+
+
 
 ## 📬 Contact
-✉️ Email: nishakarnishakar06@gmail.com.com
+✉️ Email: nishakarnishakar06@gmail.com
 
 🌐 GitHub: [NISHAKAR06](https://github.com/NISHAKAR06)
 
