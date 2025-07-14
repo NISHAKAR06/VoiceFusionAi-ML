@@ -9,9 +9,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Set Django settings module
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend_set.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend_manager.settings')
 
-app = Celery('backend_set')
+app = Celery('backend_manager')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 

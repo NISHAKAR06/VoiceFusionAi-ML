@@ -51,14 +51,14 @@ By leveraging state-of-the-art AI models and tools, it automates transcription, 
 
      Wav2Lip — Realistic lip-sync
 
-     CUDA (optional) — GPU acceleration
+     CUDA (compulsory for wav2lip) — GPU acceleration
      
 ## Folder Structure
 ```
 VoiceFusionAi-ML/
 ├── backend/
 │   ├── manage.py
-│   ├── backend_set/             # Django Settings
+│   ├── backend_manager/             # Django Settings
 │   │   ├── settings.py
 │   │   ├── urls.py
 |   |   ├── celery.py
@@ -178,7 +178,7 @@ python manage.py runserver
 
 Terminal 2:
 
-python -m celery -A backend_set worker --loglevel=info
+python -m celery -A backend_manager worker --loglevel=info
 ```
 
 
