@@ -80,7 +80,7 @@ VoiceFusionAi-ML/
 │   │   ├── task.py
 │   │   ├── translation_utils.py
 │   │   └── wav2lip.pth
-│   ├──Wav2Lip                      # clone the folder in git
+│   ├──Wav2Lip                      # clone the folder in git ""https://github.com/Rudrabha/Wav2Lip.git""
 │   ├── media/
 │   └── requirements.txt
 ├── frontend/                      
@@ -105,16 +105,11 @@ VoiceFusionAi-ML/
 
 To run this project, you will need to add the following environment variables to your .env file
 
-
-<<<<<<< HEAD
-## How can I edit this code?
-=======
 Conda — Virtual environment manager
 
 # 🖥️ Setup & Installation
 ## Backend Setup
 1️⃣ Install Anaconda (if not already installed).
->>>>>>> fe571dfd2caa5066b2b0c1daa2f2db3d4dba68c7
 
 2️⃣ Create and activate Conda environment:
 ```
