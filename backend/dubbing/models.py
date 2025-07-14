@@ -9,13 +9,13 @@ class DubbingJob(models.Model):
     ]
     
     video_file = models.FileField(upload_to='videos/')
-    result_file = models.FileField(upload_to='results/', null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     progress = models.IntegerField(default=0)
+    step_status = models.JSONField(default=dict, blank=True, null=True)
     error_message = models.TextField(blank=True, null=True)
+    title = models.CharField(max_length=255, default="Untitled Project")
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    step_status = models.JSONField(default=dict, blank=True)  # <-- use this! 
+    result_file = models.FileField(upload_to='results/', blank=True, null=True)
 
     def __str__(self):
         return f"DubbingJob {self.id} - {self.status}"

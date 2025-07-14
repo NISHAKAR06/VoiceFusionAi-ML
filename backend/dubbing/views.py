@@ -31,9 +31,14 @@ class VideoUploadView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            # Get file name without extension
+            file_name = os.path.splitext(file.name)[0]
+
             # Create dubbing job
             job = DubbingJob.objects.create(
                 video_file=file,
+                title=file_name,
+                
                 status='pending',
                 progress=0
             )
@@ -53,11 +58,11 @@ class VideoUploadView(APIView):
             process_dubbing_task.delay(str(video_path), job.id)
 
             return Response({
-                'job_id': job.id,
-                'status': 'pending',
-                'message': 'Video uploaded successfully',
-                'video_path': str(video_path)  # For debugging
-            }, status=status.HTTP_202_ACCEPTED)
+                "job_id": job.id,
+                "status": job.status,
+                "progress": job.progress,
+                "stepStatus": job.step_status or {},
+            })
 
         except Exception as e:
             logger.error(f"Error in video upload: {str(e)}")
@@ -72,6 +77,7 @@ class VideoUploadView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+# views.py  (drop-in replacement for JobStatusView.get)
 class JobStatusView(APIView):
     def get(self, request, job_id):
         try:
@@ -79,15 +85,30 @@ class JobStatusView(APIView):
             return Response({
                 'status': job.status,
                 'progress': job.progress,
-                'stepStatus': job.step_status,  # Add this line
+                'stepStatus': job.step_status or {},
+                # IMPORTANT: serve the *real* relative path
                 'result_url': job.result_file.url if job.result_file else None,
                 'error': job.error_message
             })
         except DubbingJob.DoesNotExist:
             return Response({'error': 'Job not found'}, status=404)
         except Exception as e:
-            logger.error(f"Error fetching job status: {str(e)}")
+            logger.exception("Error fetching job status")
             return Response(
                 {'error': 'Internal server error'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+class ProjectListView(APIView):
+    def get(self, request):
+        jobs = DubbingJob.objects.all().order_by('-created_at')
+        data = []
+        for job in jobs:
+            data.append({
+                "id": job.id,
+                "title": job.title,
+                "status": job.status,
+                "progress": job.progress,
+                "error_message": job.error_message,
+            })
+        return Response(data)

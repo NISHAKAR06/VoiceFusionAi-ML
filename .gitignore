@@ -54,6 +54,7 @@ build/
 # additional files
 /backend/db.sqlite3
 /backend/media/
+
 /backend/dubbing/test_script.py
 /backend/Wav2Lip
 /backend/models/base.pt/

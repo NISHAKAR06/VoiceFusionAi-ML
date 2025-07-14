@@ -27,6 +27,7 @@ import { Project } from "./Dashboard";
 
 interface DubbingProcessViewerProps {
   project: Project | null;
+  onProjectUpdate?: (project: Project) => void;
 }
 
 const defaultSteps = [
@@ -72,7 +73,7 @@ const defaultSteps = [
   },
 ];
 
-export function DubbingProcessViewer({ project }: DubbingProcessViewerProps) {
+export function DubbingProcessViewer({ project, onProjectUpdate }: DubbingProcessViewerProps) {
   const [steps, setSteps] = useState(defaultSteps);
   const [activeStep, setActiveStep] = useState("speech-recognition");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -128,17 +129,52 @@ export function DubbingProcessViewer({ project }: DubbingProcessViewerProps) {
   }, [project, isPlaying]);
 
   useEffect(() => {
-    if (!project?.id) return;
-    const interval = setInterval(() => {
-      fetch(`http://localhost:8000/dubbing/job-status/${project.id}/`)
-        .then((res) => res.json())
+    if (!project?.id || !onProjectUpdate) return;
+
+    let isPolling = true;
+
+    const poll = () => {
+      if (!isPolling) return;
+      fetch(`http://localhost:8000/dubbing/job/${project.id}/`)
+        .then((res) => {
+          if (res.status === 404) {
+            toast({
+              title: "Job not found",
+              description: "The requested dubbing job does not exist.",
+              variant: "destructive",
+            });
+            isPolling = false;
+            return null;
+          }
+          if (!res.ok) {
+            throw new Error("Failed to fetch job status");
+          }
+          return res.json();
+        })
         .then((data) => {
-          console.log("Job status update:", data); // Add this line
-          setProject((prev) => ({ ...prev, ...data }));
+          if (data) {
+            onProjectUpdate({ ...project, ...data });
+            if (data.status === 'failed' || data.status === 'completed') {
+              isPolling = false;
+            }
+          }
+        })
+        .catch((err) => {
+          console.error("Error fetching job status:", err);
+          onProjectUpdate({ ...project, status: 'failed', error_message: 'Failed to connect to the backend.' });
+          isPolling = false;
         });
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [project?.id]);
+    };
+
+    // Poll immediately on component mount and then at intervals
+    poll();
+    const interval = setInterval(poll, 3000);
+
+    return () => {
+      isPolling = false;
+      clearInterval(interval);
+    };
+  }, [project?.id, onProjectUpdate]);
 
   // useEffect(() => {
   //   if (!project?.id) return;
@@ -180,31 +216,6 @@ export function DubbingProcessViewer({ project }: DubbingProcessViewerProps) {
     });
   };
 
-  const handleFileUpload = (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file); // 'file' should match your backend's expected field name
-
-    fetch("http://localhost:8000/dubbing/upload/", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Success:", data);
-        // Handle success (e.g., update project state, show toast, etc.)
-        setProject({
-          ...initialProject,
-          id: data.job_id, // Use job_id from backend
-          status: data.status,
-          progress: 0,
-          stepStatus: {}, // Start empty, will be filled by polling
-        });
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        // Handle error (e.g., show error toast)
-      });
-  };
 
   if (!project) {
     return (

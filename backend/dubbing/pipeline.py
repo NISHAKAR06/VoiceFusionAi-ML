@@ -27,13 +27,15 @@ def cleanup_temp_files(*files):
 def ensure_dir(path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
 
-def update_step(job, step_id, status, progress):
+def update_step(job, step_id, status, progress_percent, callback=None):
     if job.step_status is None:
         job.step_status = {}
-    job.step_status[step_id] = {"status": status, "progress": progress}
+    job.step_status[step_id] = {"status": status, "progress": progress_percent}
     job.save(update_fields=["step_status"])
+    if callback:
+        callback(step_id, status, progress_percent)
 
-def dubbing_pipeline(video_path, job_id):
+def dubbing_pipeline(video_path, job_id, progress_callback=None):
     DubbingJob = apps.get_model('dubbing', 'DubbingJob')
     job = DubbingJob.objects.get(id=job_id)
     base_name = Path(video_path).stem
@@ -64,30 +66,30 @@ def dubbing_pipeline(video_path, job_id):
 
         # Step 1: Extract audio
         logger.info("Extracting audio from video...")
-        update_step(job, "speech-recognition", "in-progress", 10)
+        update_step(job, "speech-recognition", "in-progress", 10, progress_callback)
         extract_audio_ffmpeg(video_path, extracted_audio_path)
-        update_step(job, "speech-recognition", "completed", 100)
+        update_step(job, "speech-recognition", "completed", 20, progress_callback)
         logger.info(f"Audio extracted and saved to: {extracted_audio_path}")
 
         # Step 2: Inspect audio
         logger.info("Inspecting audio properties...")
-        update_step(job, "translation", "in-progress", 10)
+        update_step(job, "translation", "in-progress", 30, progress_callback)
         props = inspect_audio_properties(extracted_audio_path)
         logger.info(f"Audio properties: {props}")
-        update_step(job, "translation", "completed", 100)
+        update_step(job, "translation", "completed", 40, progress_callback)
 
         # Step 3: Transcribe
         logger.info("Transcribing audio...")
-        update_step(job, "voice-synthesis", "in-progress", 10)
+        update_step(job, "voice-synthesis", "in-progress", 50, progress_callback)
         english_text = transcribe_audio_with_whisper(extracted_audio_path)
-        update_step(job, "voice-synthesis", "completed", 100)
+        update_step(job, "voice-synthesis", "completed", 60, progress_callback)
         logger.info("Transcription completed successfully")
 
         # Step 4: Translate
         logger.info("Translating text to Hindi...")
-        update_step(job, "lip-sync", "in-progress", 10)
+        update_step(job, "lip-sync", "in-progress", 70, progress_callback)
         hindi_text = translate_text_to_hindi(english_text)
-        update_step(job, "lip-sync", "completed", 100)
+        update_step(job, "lip-sync", "completed", 80, progress_callback)
         logger.info("="*40)
         logger.info(f"Translated Hindi text:\n{hindi_text}")
         logger.info("="*40)
@@ -95,7 +97,7 @@ def dubbing_pipeline(video_path, job_id):
 
         # Step 5: Synthesize Hindi audio (voice cloning)
         logger.info("Synthesizing Hindi voice...")
-        update_step(job, "processing", "in-progress", 10)
+        update_step(job, "processing", "in-progress", 90, progress_callback)
         props = inspect_audio_properties(extracted_audio_path)
         logger.info(f"Reference audio properties: {props}")
         synthesize_hindi_audio(
@@ -103,12 +105,14 @@ def dubbing_pipeline(video_path, job_id):
             output_path=hindi_audio_path,
             reference_audio=extracted_audio_path
         )
-        update_step(job, "processing", "completed", 100)
+        update_step(job, "processing", "completed", 95, progress_callback)
         logger.info(f"Hindi audio synthesized and saved to {hindi_audio_path}")
 
         # Step 6: Lip sync
         logger.info("Running Wav2Lip for lip sync...")
+        update_step(job, "lip-sync", "in-progress", 98, progress_callback)
         run_wav2lip(video_path, hindi_audio_path, final_output_path)
+        update_step(job, "lip-sync", "completed", 100, progress_callback)
         logger.info(f"Dubbed video created and saved to {final_output_path}")
 
         # Step 7: Cleanup
@@ -116,10 +120,12 @@ def dubbing_pipeline(video_path, job_id):
         logger.info("Temporary files cleaned up.")
 
         # Update job status
-        job.result_file = str(final_output_path)
+        #job.result_file = "results/your_output_filename.mp4"
+        
+        rel_path = Path("results") / f"{Path(video_path).stem}_dubbed.mp4"
+        job.result_file = str(rel_path)
         job.status = 'completed'
-        job.progress = 100
-        job.save()
+        job.save(update_fields=['status'])
         logger.info("=== Dubbing pipeline completed successfully ===")
 
         # Return status for frontend
@@ -135,7 +141,7 @@ def dubbing_pipeline(video_path, job_id):
         cleanup_temp_files(*temp_files)
         job.status = 'failed'
         job.error_message = str(e)
-        job.save()
+        job.save(update_fields=['status', 'error_message'])
         return {
             "status": "failed",
             "error": str(e),
