@@ -138,7 +138,7 @@ npm install
 ```
 npm run dev
 ```
-Frontend will be available at: http://localhost:5173
+Frontend will be available at: [http://localhost:8080](http://localhost:8080/)
 ## 🕒 Celery Setup
 Celery is used to offload heavy tasks (like Whisper, Wav2Lip) into background workers.
 
