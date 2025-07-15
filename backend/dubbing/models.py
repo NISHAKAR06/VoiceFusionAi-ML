@@ -1,6 +1,8 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class DubbingJob(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('processing', 'Processing'),

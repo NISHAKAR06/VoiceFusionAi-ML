@@ -132,6 +132,9 @@ export function DubbingProcessViewer({ project, onProjectUpdate }: DubbingProces
     if (!project?.id || !onProjectUpdate) return;
 
     let isPolling = true;
+    let lastProgress = project.progress;
+    let stagnantTime = 0;
+    const STAGNANT_TIMEOUT = 30000; // 30 seconds
 
     const poll = () => {
       if (!isPolling) return;
@@ -156,6 +159,20 @@ export function DubbingProcessViewer({ project, onProjectUpdate }: DubbingProces
             onProjectUpdate({ ...project, ...data });
             if (data.status === 'failed' || data.status === 'completed') {
               isPolling = false;
+            }
+
+            // Check for stagnant progress
+            if (data.status === 'processing') {
+              if (data.progress === lastProgress) {
+                stagnantTime += 3000;
+                if (stagnantTime >= STAGNANT_TIMEOUT) {
+                  onProjectUpdate({ ...project, status: 'failed', error_message: 'Processing timed out.' });
+                  isPolling = false;
+                }
+              } else {
+                lastProgress = data.progress;
+                stagnantTime = 0;
+              }
             }
           }
         })

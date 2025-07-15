@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Film, Clock, CheckCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -11,24 +10,30 @@ interface DashboardSummaryProps {
   projects: Project[];
 }
 
-// Mock data for charts
-const lineData = [
-  { name: 'Mon', processing: 2, completed: 1 },
-  { name: 'Tue', processing: 3, completed: 2 },
-  { name: 'Wed', processing: 4, completed: 3 },
-  { name: 'Thu', processing: 2, completed: 2 },
-  { name: 'Fri', processing: 5, completed: 4 },
-  { name: 'Sat', processing: 3, completed: 3 },
-  { name: 'Sun', processing: 2, completed: 2 },
-];
-
 export function DashboardSummary({ projects = [] }: DashboardSummaryProps) {
   const navigate = useNavigate();
+
+  // Generate dynamic line data for the last 7 days
+  const lineData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+    const projectsOnDay = projects.filter(p => {
+        if (!p.created_at) return false;
+        const projectDate = new Date(p.created_at);
+        return projectDate.toDateString() === d.toDateString();
+    });
+    return {
+      name: dayStr,
+      processing: projectsOnDay.filter(p => p.status === 'processing' || p.status === 'pending').length,
+      completed: projectsOnDay.filter(p => p.status === 'completed').length,
+    };
+  }).reverse();
   
   // Calculate stats
   const totalProjects = projects.length;
   const completedProjects = projects.filter(p => p.status === 'completed').length;
-  const processingProjects = projects.filter(p => p.status === 'processing').length;
+  const processingProjects = projects.filter(p => p.status === 'processing' || p.status === 'pending').length;
   const failedProjects = projects.filter(p => p.status === 'failed').length;
   
   // Create pie data
@@ -51,9 +56,11 @@ export function DashboardSummary({ projects = [] }: DashboardSummaryProps) {
   ];
 
   // Show most recent projects
-  const recentProjects = [...projects].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  ).slice(0, 4);
+  const recentProjects = [...projects].sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return dateB - dateA;
+  }).slice(0, 4);
 
   return (
     <div className="space-y-6">
@@ -177,7 +184,9 @@ export function DashboardSummary({ projects = [] }: DashboardSummaryProps) {
                       <div className="flex-grow">
                         <div className="flex justify-between items-center mb-1">
                           <h4 className="font-medium">{project.title}</h4>
-                          <span className="text-xs text-muted-foreground">{project.date}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {project.created_at ? new Date(project.created_at).toLocaleDateString() : ''}
+                          </span>
                         </div>
                         <div className="flex items-center">
                           <Progress value={project.progress} className="h-2 flex-grow" />

@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 
 interface Project {
   id: number;
+  display_id: number;
   title: string;
   status: string;
   progress: number;
@@ -22,6 +23,7 @@ interface ProjectListProps {
 export function ProjectList({ projects = [] }: ProjectListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
 
   // Filter and search projects
   const filteredProjects = projects.filter((project) => {
@@ -118,6 +120,12 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
             Processing
           </Button>
           <Button
+            variant={filter === "pending" ? "default" : "outline"}
+            onClick={() => setFilter("pending")}
+          >
+            Pending
+          </Button>
+          <Button
             variant={filter === "failed" ? "default" : "outline"}
             onClick={() => setFilter("failed")}
           >
@@ -126,7 +134,12 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
         </div>
       </div>
       <div className="space-y-2">
-        {filteredProjects.length === 0 ? (
+        {!isAuthenticated ? (
+          <div className="text-center py-8">
+            <Film className="h-12 w-12 mx-auto text-muted-foreground opacity-30" />
+            <p className="mt-4 text-muted-foreground">Please log in to see your projects.</p>
+          </div>
+        ) : filteredProjects.length === 0 ? (
           <div className="text-center py-8">
             <Film className="h-12 w-12 mx-auto text-muted-foreground opacity-30" />
             <p className="mt-4 text-muted-foreground">No projects found</p>
@@ -148,7 +161,9 @@ export function ProjectList({ projects = [] }: ProjectListProps) {
               <div className="flex-grow">
                 <div className="flex flex-col md:flex-row justify-between gap-2 items-start md:items-center mb-2">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium">{project.title}</h4>
+                    <h4 className="font-medium">
+                      {project.display_id}:- {project.title}
+                    </h4>
                     <Badge
                       variant={
                         project.status === "completed"

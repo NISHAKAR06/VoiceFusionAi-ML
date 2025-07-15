@@ -8,7 +8,9 @@ def process_dubbing_task(self, video_path, job_id):
     """
     from .pipeline import dubbing_pipeline
     DubbingJob = apps.get_model('dubbing', 'DubbingJob')
-    job = DubbingJob.objects.get(id=job_id)
+    job = DubbingJob.objects.only(
+        'id', 'status', 'progress', 'step_status', 'error_message'
+    ).get(id=job_id)
 
     def progress_callback(step, status, progress_percent):
         """Callback to update job progress and step status."""

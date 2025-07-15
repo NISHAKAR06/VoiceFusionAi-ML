@@ -79,8 +79,13 @@ export function FileUploader({ onFileUploaded }: FileUploaderProps) {
       const formData = new FormData();
       formData.append("file", file);
 
+      const token = localStorage.getItem("token");
+
       const response = await fetch("http://localhost:8000/dubbing/upload/", {
         method: "POST",
+        headers: {
+          Authorization: `Token ${token}`,
+        },
         body: formData,
       });
 
