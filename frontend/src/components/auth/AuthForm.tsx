@@ -29,61 +29,53 @@ export function AuthForm({ type, onSubmit }: AuthFormProps) {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic validation
-    if (type === 'signup' && !formData.name) {
+
+    const url = type === 'signin' ? 'http://localhost:8000/api/login/' : 'http://localhost:8000/api/signup/';
+    const body = type === 'signin' 
+      ? { username: formData.email, password: formData.password } 
+      : { username: formData.name, password: formData.password, email: formData.email };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        const userData = {
+          name: type === 'signin' ? formData.email.split('@')[0] : formData.name,
+          email: formData.email,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            type === 'signin' ? formData.email.split('@')[0] : formData.name
+          )}&background=6246EA&color=fff`
+        };
+        setUser(userData);
+        toast({
+          title: type === 'signin' ? "Signed In!" : "Account Created!",
+          description: "Welcome to Tamil Dub Cinema",
+        });
+        navigate('/dashboard');
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "An error occurred.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Please enter your name",
+        description: "An error occurred.",
         variant: "destructive"
       });
-      return;
-    }
-    
-    if (!formData.email) {
-      toast({
-        title: "Error",
-        description: "Please enter your email",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!formData.password) {
-      toast({
-        title: "Error",
-        description: "Please enter your password",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Create the user object
-    const userData = {
-      name: type === 'signin' ? formData.email.split('@')[0] : formData.name,
-      email: formData.email,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        type === 'signin' ? formData.email.split('@')[0] : formData.name
-      )}&background=6246EA&color=fff`
-    };
-    
-    // Set user in context
-    setUser(userData);
-    
-    // Handle authentication success
-    toast({
-      title: type === 'signin' ? "Signed In!" : "Account Created!",
-      description: "Welcome to Tamil Dub Cinema",
-    });
-    
-    // Forward to dashboard
-    navigate('/dashboard');
-    
-    // Call onSubmit if provided
-    if (onSubmit) {
-      onSubmit(formData);
     }
   };
 

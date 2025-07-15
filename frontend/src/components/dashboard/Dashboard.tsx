@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useUser } from "@/context/UserContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileUploader } from "@/components/upload/FileUploader";
@@ -10,6 +11,7 @@ import { DashboardSummary } from "@/components/dashboard/DashboardSummary";
 // Define a shared type for projects
 export interface Project {
   id: number;
+  display_id: number;
   title: string;
   status: "pending" | "processing" | "completed" | "failed";
   progress: number;
@@ -26,37 +28,61 @@ export interface Project {
 }
 
 export function Dashboard() {
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState("overview");
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProcessingProject, setCurrentProcessingProject] =
     useState<Project | null>(null);
 
-  // Load projects from the backend on initial render
+  // Load projects from the backend on initial render and poll for updates
   useEffect(() => {
-    fetch("http://localhost:8000/dubbing/projects/")
-      .then((res) => res.json())
-      .then((data) => {
-        setProjects(data);
-        const processingProject = data.find(
-          (p: Project) => p.status === "processing"
-        );
-        if (processingProject) {
-          setCurrentProcessingProject(processingProject);
-        }
-      });
-  }, []);
+    const fetchProjects = () => {
+      const token = localStorage.getItem("token");
+      if (token && user) {
+        fetch("http://localhost:8000/dubbing/projects/", {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            setProjects(data);
+            const processingProject = data.find(
+              (p: Project) => p.status === "processing" || p.status === "pending"
+            );
+            if (processingProject) {
+              setCurrentProcessingProject(processingProject);
+            } else {
+              // If no project is processing, set current to null
+              const completedOrFailed = projects.find(p => p.id === currentProcessingProject?.id);
+              if (completedOrFailed?.status === 'completed' || completedOrFailed?.status === 'failed') {
+                // Keep showing the result until the user dismisses it
+              } else {
+                setCurrentProcessingProject(null);
+              }
+            }
+          });
+      }
+    };
+
+    fetchProjects(); // Initial fetch
+    const intervalId = setInterval(fetchProjects, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, [user, projects, currentProcessingProject]);
 
   // Function to handle new file upload
   const handleFileUpload = (uploadedFile: any) => {
     if (uploadedFile.jobId) {
       const newProject: Project = {
         id: uploadedFile.jobId,
+        display_id: projects.length + 1,
         title: uploadedFile.name.split(".")[0],
         status: "processing",
         progress: 0,
         stepStatus: {},
       };
-      setProjects([newProject]);
+      setProjects([newProject, ...projects]);
       setCurrentProcessingProject(newProject);
       setActiveTab("process");
     }
