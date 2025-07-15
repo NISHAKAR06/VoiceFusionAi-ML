@@ -75,7 +75,7 @@ def transcribe_audio_with_whisper(audio_path):
         logger.info(f"Using device: {device}")
 
         model = whisper.load_model(
-            "base",
+            "tiny.en",
             device=device,
             download_root=os.path.join(os.path.dirname(__file__), "models")
         )

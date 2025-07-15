@@ -123,10 +123,16 @@ def dubbing_pipeline(video_path, job_id, progress_callback=None):
         
         def wav2lip_progress_callback(progress):
             update_step(job, "lip-sync", "in-progress", 98 + (progress / 50), progress_callback) # 98 to 100
-
-        run_wav2lip(video_path, hindi_audio_path, final_output_path, quality=job.quality, progress_callback=wav2lip_progress_callback)
-        update_step(job, "lip-sync", "completed", 100, progress_callback)
-        logger.info(f"Dubbed video created and saved to {final_output_path}")
+        try:
+            run_wav2lip(video_path, hindi_audio_path, final_output_path, quality=job.quality, progress_callback=wav2lip_progress_callback)
+            update_step(job, "lip-sync", "completed", 100, progress_callback)
+            logger.info(f"Dubbed video created and saved to {final_output_path}")
+        except Exception as e:
+            logger.error(f"Wav2Lip failed: {e}")
+            job.status = 'failed'
+            job.error_message = f"Wav2Lip failed: {e}"
+            job.save(update_fields=['status', 'error_message'])
+            raise
 
         # Step 7: Cleanup
         cleanup_temp_files(*temp_files)

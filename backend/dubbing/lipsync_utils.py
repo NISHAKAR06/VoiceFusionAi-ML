@@ -64,6 +64,7 @@ def run_wav2lip(video_path, audio_path, output_path, quality="medium", progress_
             "--face", video_path,
             "--audio", audio_path,
             "--outfile", output_path,
+            "--wav2lip_batch_size", "16"
         ]
 
         if quality == "fast":
@@ -75,12 +76,19 @@ def run_wav2lip(video_path, audio_path, output_path, quality="medium", progress_
         
         # Add detailed progress logging
         logger.info("Starting Wav2Lip processing...")
+
+        # Force CPU usage to avoid GPU memory hangs
+        env = os.environ.copy()
+        env["CUDA_VISIBLE_DEVICES"] = ""
+        logger.info("Forcing CPU for Wav2Lip to ensure stability.")
+
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1
+            bufsize=1,
+            env=env
         )
         
         # Monitor stdout for progress
@@ -105,8 +113,9 @@ def run_wav2lip(video_path, audio_path, output_path, quality="medium", progress_
         # Check for errors
         stdout, stderr = process.communicate()
         if process.returncode != 0:
-            logger.error(f"Wav2Lip stdout: {stdout}")
-            logger.error(f"Wav2Lip stderr: {stderr}")
+            logger.error(f"Wav2Lip output: {stdout}")
+            if stderr:
+                logger.error(f"Wav2Lip stderr: {stderr}")
             raise subprocess.CalledProcessError(process.returncode, cmd, stderr=stderr)
 
         if not os.path.exists(output_path):
