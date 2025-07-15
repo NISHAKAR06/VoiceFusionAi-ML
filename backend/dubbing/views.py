@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -83,12 +83,14 @@ class VideoUploadView(APIView):
             file_name = os.path.splitext(file.name)[0]
 
             # Create dubbing job
+            quality = request.data.get('quality', 'medium')
             job = DubbingJob.objects.create(
                 user=request.user,
                 video_file=file,
                 title=file_name,
                 status='pending',
-                progress=0
+                progress=0,
+                quality=quality
             )
 
             # Verify file was saved successfully
@@ -134,8 +136,10 @@ class JobStatusView(APIView):
                 'status': job.status,
                 'progress': job.progress,
                 'stepStatus': job.step_status or {},
-                # IMPORTANT: serve the *real* relative path
                 'result_url': job.result_file.url if job.result_file else None,
+                'extracted_audio': job.extracted_audio.url if job.extracted_audio else None,
+                'dubbed_audio_file': job.dubbed_audio_file.url if job.dubbed_audio_file else None,
+                'translated_subtitles': job.translated_subtitles,
                 'error': job.error_message
             })
         except DubbingJob.DoesNotExist:
@@ -161,8 +165,36 @@ class ProjectListView(APIView):
                     "progress": job.progress,
                     "error_message": job.error_message,
                     "created_at": job.created_at,
+                    "result_url": job.result_file.url if job.result_file else None,
+                    "extracted_audio": job.extracted_audio.url if job.extracted_audio else None,
+                    "dubbed_audio_file": job.dubbed_audio_file.url if job.dubbed_audio_file else None,
+                    "translated_subtitles": job.translated_subtitles,
                 })
             return Response(data[::-1])  # Reverse to show newest first
         else:
             # Return an empty list for anonymous users
             return Response([])
+
+def serve_dubbed_audio(request, job_id):
+    try:
+        job = DubbingJob.objects.get(id=job_id)
+        
+        # Ensure the job has a dubbed audio file
+        if not job.dubbed_audio_file:
+            return JsonResponse({'error': 'Dubbed audio not found for this job'}, status=404)
+
+        # Construct the full path to the audio file
+        audio_file_path = os.path.join(settings.MEDIA_ROOT, str(job.dubbed_audio_file))
+
+        # Check if the file exists
+        if not os.path.exists(audio_file_path):
+            return JsonResponse({'error': 'Audio file not found on server'}, status=404)
+
+        # Serve the file
+        return FileResponse(open(audio_file_path, 'rb'), as_attachment=True, filename=os.path.basename(audio_file_path))
+
+    except DubbingJob.DoesNotExist:
+        return JsonResponse({'error': 'Job not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error serving dubbed audio for job {job_id}: {e}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)

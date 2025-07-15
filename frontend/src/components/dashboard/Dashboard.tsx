@@ -25,6 +25,10 @@ export interface Project {
     size: number;
     type: string;
   };
+  extracted_audio?: string;
+  dubbed_audio_file?: string;
+  translated_subtitles?: string;
+  quality?: "fast" | "medium" | "high";
 }
 
 export function Dashboard() {
@@ -53,10 +57,9 @@ export function Dashboard() {
             if (processingProject) {
               setCurrentProcessingProject(processingProject);
             } else {
-              // If no project is processing, set current to null
-              const completedOrFailed = projects.find(p => p.id === currentProcessingProject?.id);
-              if (completedOrFailed?.status === 'completed' || completedOrFailed?.status === 'failed') {
-                // Keep showing the result until the user dismisses it
+              const lastCompleted = data.find(p => p.id === currentProcessingProject?.id && (p.status === 'completed' || p.status === 'failed'));
+              if (lastCompleted) {
+                setCurrentProcessingProject(lastCompleted);
               } else {
                 setCurrentProcessingProject(null);
               }
@@ -69,7 +72,7 @@ export function Dashboard() {
     const intervalId = setInterval(fetchProjects, 5000); // Poll every 5 seconds
 
     return () => clearInterval(intervalId); // Cleanup on unmount
-  }, [user, projects, currentProcessingProject]);
+  }, [user]);
 
   // Function to handle new file upload
   const handleFileUpload = (uploadedFile: any) => {

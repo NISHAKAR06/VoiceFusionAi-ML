@@ -156,7 +156,7 @@ export function DubbingProcessViewer({ project, onProjectUpdate }: DubbingProces
         })
         .then((data) => {
           if (data) {
-            onProjectUpdate({ ...project, ...data });
+            onProjectUpdate(data);
             if (data.status === 'failed' || data.status === 'completed') {
               isPolling = false;
             }
@@ -358,9 +358,10 @@ export function DubbingProcessViewer({ project, onProjectUpdate }: DubbingProces
       </div>
 
       <Tabs defaultValue="details">
-        <TabsList className="grid grid-cols-3 w-[400px]">
+        <TabsList className="grid grid-cols-4 w-[500px]">
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="subtitles">Subtitles</TabsTrigger>
+          <TabsTrigger value="audio">Audio</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="details" className="space-y-4">
@@ -423,26 +424,59 @@ export function DubbingProcessViewer({ project, onProjectUpdate }: DubbingProces
         <TabsContent value="subtitles">
           <div className="bg-muted p-4 rounded-md h-[300px] overflow-y-auto">
             <div className="space-y-4">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="border-b pb-3">
-                  <div className="text-xs text-muted-foreground mb-1">
-                    00:{i + 1}:10 - 00:{i + 1}:15
-                  </div>
-                  <p className="text-sm mb-1">
-                    This is an English subtitle line example.
-                  </p>
-                  <p className="text-sm text-tamil-primary">
-                    இது ஒரு தமிழ் வசன வரி உதாரணம்.
-                  </p>
-                </div>
-              ))}
+              {project?.translated_subtitles ? (
+                <p className="text-sm whitespace-pre-wrap">
+                  {project.translated_subtitles}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No subtitles available.
+                </p>
+              )}
             </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="audio">
+          <div className="bg-muted p-4 rounded-md">
+            {project?.dubbed_audio_file ? (
+              <audio controls className="w-full" key={project.dubbed_audio_file}>
+                <source 
+                  src={`http://localhost:8000${project.dubbed_audio_file}`}
+                  type="audio/wav"
+                />
+                Your browser does not support the audio element.
+              </audio>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Dubbed audio will be available once processing is complete.
+              </p>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="settings">
           <div className="bg-muted p-4 rounded-md">
             <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Wav2Lip Quality</span>
+                  <span className="text-muted-foreground">{project?.quality || "medium"}</span>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      <span>{project?.quality || "medium"}</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={() => onProjectUpdate?.({...project, quality: "fast"})}>Fast</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onProjectUpdate?.({...project, quality: "medium"})}>Medium</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onProjectUpdate?.({...project, quality: "high"})}>High</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">
                   <span>Voice Quality</span>

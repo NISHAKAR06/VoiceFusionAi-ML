@@ -29,7 +29,7 @@ def check_wav2lip_dependencies():
         logger.error(f"Wav2Lip dependency check failed: {str(e)}")
         raise
 
-def run_wav2lip(video_path, audio_path, output_path):
+def run_wav2lip(video_path, audio_path, output_path, quality="medium", progress_callback=None):
     """Run Wav2Lip to synchronize lip movements with audio"""
     try:
         # Check dependencies first
@@ -64,18 +64,51 @@ def run_wav2lip(video_path, audio_path, output_path):
             "--face", video_path,
             "--audio", audio_path,
             "--outfile", output_path,
-            "--nosmooth"
         ]
+
+        if quality == "fast":
+            cmd.extend(["--resize_factor", "2"])
+        elif quality == "high":
+            cmd.extend(["--pads", "0", "20", "0", "0"])
+        else: # medium
+            cmd.extend(["--nosmooth"])
         
         # Add detailed progress logging
         logger.info("Starting Wav2Lip processing...")
-        result = subprocess.run(
+        process = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            check=True
+            bufsize=1
         )
         
+        # Monitor stdout for progress
+        while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                logger.info(output.strip())
+                # Example of parsing progress: "Processing frame 100/1000"
+                if "Processing frame" in output:
+                    parts = output.split()
+                    try:
+                        current_frame = int(parts[2].split('/')[0])
+                        total_frames = int(parts[2].split('/')[1])
+                        progress = int((current_frame / total_frames) * 100)
+                        if progress_callback:
+                            progress_callback(progress)
+                    except (ValueError, IndexError):
+                        pass
+        
+        # Check for errors
+        stdout, stderr = process.communicate()
+        if process.returncode != 0:
+            logger.error(f"Wav2Lip stdout: {stdout}")
+            logger.error(f"Wav2Lip stderr: {stderr}")
+            raise subprocess.CalledProcessError(process.returncode, cmd, stderr=stderr)
+
         if not os.path.exists(output_path):
             raise FileNotFoundError(f"Wav2Lip failed to create output file: {output_path}")
             

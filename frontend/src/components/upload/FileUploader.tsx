@@ -2,9 +2,10 @@ import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Cloud, File, FileText, X, Check } from "lucide-react";
+import { Cloud, File, FileText, X, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface UploadedFile {
   id: string;
@@ -23,6 +24,7 @@ interface FileUploaderProps {
 export function FileUploader({ onFileUploaded }: FileUploaderProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [quality, setQuality] = useState<"fast" | "medium" | "high">("medium");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -78,6 +80,7 @@ export function FileUploader({ onFileUploaded }: FileUploaderProps) {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("quality", quality);
 
       const token = localStorage.getItem("token");
 
@@ -292,6 +295,21 @@ export function FileUploader({ onFileUploaded }: FileUploaderProps) {
           <p className="text-xs text-muted-foreground mt-4">
             Supports: MP4, MKV, AVI, MOV (Max 2GB)
           </p>
+        </div>
+        <div className="mt-4">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-between">
+                <span>Quality: {quality}</span>
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => setQuality("fast")}>Fast</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setQuality("medium")}>Medium</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setQuality("high")}>High</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {files.length > 0 && (

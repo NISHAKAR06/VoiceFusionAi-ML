@@ -31,7 +31,12 @@ def update_step(job, step_id, status, progress_percent, callback=None):
     if job.step_status is None:
         job.step_status = {}
     job.step_status[step_id] = {"status": status, "progress": progress_percent}
-    job.save(update_fields=["step_status"])
+    
+    # Update overall progress
+    total_progress = sum(step.get('progress', 0) for step in job.step_status.values())
+    job.progress = total_progress / len(job.step_status)
+    
+    job.save(update_fields=["step_status", "progress"])
     if callback:
         callback(step_id, status, progress_percent)
 
@@ -68,6 +73,8 @@ def dubbing_pipeline(video_path, job_id, progress_callback=None):
         logger.info("Extracting audio from video...")
         update_step(job, "speech-recognition", "in-progress", 10, progress_callback)
         extract_audio_ffmpeg(video_path, extracted_audio_path)
+        job.extracted_audio.name = str(Path("audio") / f"{base_name}_extracted.wav")
+        job.save(update_fields=['extracted_audio'])
         update_step(job, "speech-recognition", "completed", 20, progress_callback)
         logger.info(f"Audio extracted and saved to: {extracted_audio_path}")
 
@@ -89,6 +96,8 @@ def dubbing_pipeline(video_path, job_id, progress_callback=None):
         logger.info("Translating text to Hindi...")
         update_step(job, "lip-sync", "in-progress", 70, progress_callback)
         hindi_text = translate_text_to_hindi(english_text)
+        job.translated_subtitles = hindi_text
+        job.save(update_fields=['translated_subtitles'])
         update_step(job, "lip-sync", "completed", 80, progress_callback)
         logger.info("="*40)
         logger.info(f"Translated Hindi text:\n{hindi_text}")
@@ -111,7 +120,11 @@ def dubbing_pipeline(video_path, job_id, progress_callback=None):
         # Step 6: Lip sync
         logger.info("Running Wav2Lip for lip sync...")
         update_step(job, "lip-sync", "in-progress", 98, progress_callback)
-        run_wav2lip(video_path, hindi_audio_path, final_output_path)
+        
+        def wav2lip_progress_callback(progress):
+            update_step(job, "lip-sync", "in-progress", 98 + (progress / 50), progress_callback) # 98 to 100
+
+        run_wav2lip(video_path, hindi_audio_path, final_output_path, quality=job.quality, progress_callback=wav2lip_progress_callback)
         update_step(job, "lip-sync", "completed", 100, progress_callback)
         logger.info(f"Dubbed video created and saved to {final_output_path}")
 
@@ -120,12 +133,11 @@ def dubbing_pipeline(video_path, job_id, progress_callback=None):
         logger.info("Temporary files cleaned up.")
 
         # Update job status
-        #job.result_file = "results/your_output_filename.mp4"
-        
         rel_path = Path("results") / f"{Path(video_path).stem}_dubbed.mp4"
         job.result_file = str(rel_path)
+        job.dubbed_audio_file.name = str(Path("audio") / f"{base_name}_hindi.wav")
         job.status = 'completed'
-        job.save(update_fields=['status'])
+        job.save(update_fields=['status', 'result_file', 'dubbed_audio_file'])
         logger.info("=== Dubbing pipeline completed successfully ===")
 
         # Return status for frontend
