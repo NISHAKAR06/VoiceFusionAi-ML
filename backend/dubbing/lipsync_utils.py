@@ -77,18 +77,12 @@ def run_wav2lip(video_path, audio_path, output_path, quality="medium", progress_
         # Add detailed progress logging
         logger.info("Starting Wav2Lip processing...")
 
-        # Force CPU usage to avoid GPU memory hangs
-        env = os.environ.copy()
-        env["CUDA_VISIBLE_DEVICES"] = ""
-        logger.info("Forcing CPU for Wav2Lip to ensure stability.")
-
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE,
             text=True,
-            bufsize=1,
-            env=env
+            bufsize=1
         )
         
         # Monitor stdout for progress
