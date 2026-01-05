@@ -63,7 +63,9 @@ numba>=0.56.4
 
 typing-extensions>=4.12
 # for cuda detection
-torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# Note: torch, torchvision, torchaudio are already specified above
+# If you need CUDA 12.1 specific versions, install manually with:
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 # for whisper for in gpu
 git+https://github.com/openai/whisper.git
