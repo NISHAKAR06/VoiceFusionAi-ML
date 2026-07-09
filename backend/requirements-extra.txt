@@ -1,0 +1,3 @@
+# Install these separately after main requirements
+git+https://github.com/openai/whisper.git
+psycopg2-binary
